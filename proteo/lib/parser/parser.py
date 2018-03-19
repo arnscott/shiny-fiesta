@@ -73,7 +73,36 @@ class SpectraAttributes(object):
 
 
 
+
+class MZMLAttributes(object):
+
+    def __init__(self, raw):
+        self.index = raw['index']
+        self.id = raw['id']
+        self.default_array_length = raw['defaultArrayLength']
+        self.ms_level = raw['ms level']
+        if 'MS1 spectrum' in raw:
+            self.msn_spectrum = raw['MS1 spectrum']
+        else:
+            self.msn_spectrum = raw['MSn spectrum']
+        self.positive_scan = raw['positive scan']
+        self.centroid_spectrum = raw['positive scan']
+        self.base_peak_mz = raw['base peak m/z']
+        self.base_peak_intensity = raw['base peak intensity']
+        self.total_ion_current = raw['total ion current']
+        self.lowest_observed_mz = raw['lowest observed m/z']
+        self.highest_observed_mz = raw['highest observed m/z']
+        if self.ms_level == '2':
+            self.precursor_list = []
+
+
+
 class MZMLParser(object):
+    
+    spectrum_tag = '{http://psi.hupo.org/ms/mzml}spectrum'
+    cv_param_tag = '{http://psi.hupo.org/ms/mzml}cvParam'
+    precursor_list_tag = '{http://psi.hupo.org/ms/mzml}precursorList'
+    precursor_tag = '{http://psi.hupo.org/ms/mzml}precursor'
 
     def __init__(self, file_path):
         self.file_path = file_path
@@ -82,10 +111,20 @@ class MZMLParser(object):
     def iterate(self):
         with open(self.file_path, 'rb') as mzml:
             for event, element in etree.iterparse(mzml):
-                if element.tag == '{http://psi.hupo.org/ms/mzml}spectrum':
-                    move_element = element.find('spectrumDesc')
-                    move_element = move_element.find('spectrumSettings')
-                    move_element = move_element.find('spectrumInstrument')
-                    ms_level = move_element.get('msLevel')
-                    print(ms_level)
-                    yield ms_level
+                if element.tag == self.spectrum_tag:
+                    attr_dict = {}
+                    attr_dict = {key: value for key, value in element.items()}
+                    cv_params = element.findall(self.cv_param_tag)
+                    for cv_param in cv_params:
+                        for key, value in cv_param.items():
+                            if key == 'name':
+                                attribute = value
+                            if key == 'value':
+                                attr_dict[attribute] = value
+                    record = MZMLAttributes(attr_dict)
+                    if record.ms_level == '2':
+                        precursor_list = element.find(self.precursor_list_tag)
+                        precursors = precursor_list.findall(self.precursor_tag)
+                        for precursor in precursors:
+                            record.precursor_list.append(precursor.get('spectrumRef'))
+                    yield record
