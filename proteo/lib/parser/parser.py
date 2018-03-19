@@ -94,6 +94,16 @@ class MZMLAttributes(object):
         self.highest_observed_mz = raw['highest observed m/z']
         if self.ms_level == '2':
             self.precursor_list = []
+        
+
+
+        @property
+        def scan_time(self):
+            return self._scan_time
+
+        @scan_time.setter
+        def scan_time(self, value):
+            self._scan_time = float(value)
 
 
 
@@ -103,6 +113,9 @@ class MZMLParser(object):
     cv_param_tag = '{http://psi.hupo.org/ms/mzml}cvParam'
     precursor_list_tag = '{http://psi.hupo.org/ms/mzml}precursorList'
     precursor_tag = '{http://psi.hupo.org/ms/mzml}precursor'
+    scan_list_tag = '{http://psi.hupo.org/ms/mzml}scanList'
+    scan_tag = '{http://psi.hupo.org/ms/mzml}scan'
+
 
     def __init__(self, file_path):
         self.file_path = file_path
@@ -127,4 +140,15 @@ class MZMLParser(object):
                         precursors = precursor_list.findall(self.precursor_tag)
                         for precursor in precursors:
                             record.precursor_list.append(precursor.get('spectrumRef'))
+                    scan_list_element = element.find(self.scan_list_tag)
+                    scan_element = scan_list_element.find(self.scan_tag)
+                    
+                    scan_attr_dict = {}
+                    for scan_attr in scan_element.find_all(self.cv_param_tag):
+                        for key, value in scan_attr.items():
+                            if key == 'name':
+                                attribute = value
+                            if key == 'value':
+                                scan_attr_dict[attribute] = value
+                    record.scan_time = scan_attr_dict['scan start time']
                     yield record

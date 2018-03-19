@@ -6,25 +6,14 @@ import lib.parser
 
 
 def main(args):
-    mzid = lib.parser.MZIDParser(args.file_path)
+    mzml = lib.parser.MZMLParser(args.file_path)
     
-    test_list = []
+    count = 0
 
-    for thing in mzid.iterate:
-        test_list.append(thing)
- 
-    print(len(test_list))
-    
-
-    for thing in test_list:
-        filtered_list = []
-        for othing in thing.spectrum_items:
-            for key, value in othing.items():
-                print(key)
-            if float(othing.QValue) <= 0.01:
-                filtered_list.append(othing)
-        thing.spectrum_items = filtered_list
-                
+    for record in mzml.iterate:
+        if record.ms_level == '2':
+            count += 1
+    print(count)
 
 
 
