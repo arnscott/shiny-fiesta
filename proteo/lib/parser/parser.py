@@ -93,9 +93,12 @@ class MZMLAttributes(object):
         self.lowest_observed_mz = raw['lowest observed m/z']
         self.highest_observed_mz = raw['highest observed m/z']
         if self.ms_level == '2':
-            self.precursor_list = []
+            self.precursors = {}
+        if self.ms_level == '1':
+            self.ms2_scans = []
+            self.peptides = []
+        self.features = []
         
-
 
         @property
         def scan_time(self):
@@ -104,6 +107,17 @@ class MZMLAttributes(object):
         @scan_time.setter
         def scan_time(self, value):
             self._scan_time = float(value)
+    
+        @property
+        def scan_end(self):
+            return self._scan_end
+
+        @scan_end.setter
+        def scan_end(self, value):
+            self._scan_end
+
+
+
 
 
 
@@ -115,7 +129,8 @@ class MZMLParser(object):
     precursor_tag = '{http://psi.hupo.org/ms/mzml}precursor'
     scan_list_tag = '{http://psi.hupo.org/ms/mzml}scanList'
     scan_tag = '{http://psi.hupo.org/ms/mzml}scan'
-
+    selected_ion_list_tag = '{http://psi.hupo.org/ms/mzml}selectedIonList'
+    selected_ion_tag = '{http://psi.hupo.org/ms/mzml}selectedIon'
 
     def __init__(self, file_path):
         self.file_path = file_path
@@ -139,12 +154,23 @@ class MZMLParser(object):
                         precursor_list = element.find(self.precursor_list_tag)
                         precursors = precursor_list.findall(self.precursor_tag)
                         for precursor in precursors:
-                            record.precursor_list.append(precursor.get('spectrumRef'))
+                            pre_key = precursor.get('spectrumRef')
+                            selected_ion_list = precursor.find(self.selected_ion_list_tag)
+                            selected_ion = selected_ion_list.find(self.selected_ion_tag)
+                            ion_params = selected_ion.findall(self.cv_param_tag)
+                            ion_attr_dict = {}
+                            for ion_param in ion_params:
+                                for key, value in ion_param.items():
+                                    if key == 'name':
+                                        attribute = value
+                                    if key == 'value':
+                                        ion_attr_dict[attribute] = value
+                            record.precursors[pre_key] = ion_attr_dict['selected ion m/z']
                     scan_list_element = element.find(self.scan_list_tag)
                     scan_element = scan_list_element.find(self.scan_tag)
                     
                     scan_attr_dict = {}
-                    for scan_attr in scan_element.find_all(self.cv_param_tag):
+                    for scan_attr in scan_element.findall(self.cv_param_tag):
                         for key, value in scan_attr.items():
                             if key == 'name':
                                 attribute = value
