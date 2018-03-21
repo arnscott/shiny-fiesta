@@ -93,10 +93,10 @@ class MZMLAttributes(object):
         self.lowest_observed_mz = raw['lowest observed m/z']
         self.highest_observed_mz = raw['highest observed m/z']
         if self.ms_level == '2':
-            self.precursors = {}
+            self.precursor = {}
         if self.ms_level == '1':
             self.ms2_scans = []
-            self.peptides = []
+        self.peptide = None
         self.features = []
         
 
@@ -119,6 +119,25 @@ class MZMLAttributes(object):
 
 
 
+class Scan(object):
+
+    def __init__(self):
+        self.id = ''
+        self.ms_level = ''
+        self.peptide = {}
+        self.features = []
+
+    def set_precursor_values(self, attr_dict):
+        self.mz = float(attr_dict['selected ion m/z'])
+        self.charge_state = attr_dict['charge state']
+
+
+    def add_peptide(self, peptide):
+        self.peptide = peptide
+        error = float(peptide['PrecursorError(ppm)'])
+        precursor_mz = float(peptide['Precursor'])
+        self.threshold = error / precursor_mz
+
 
 
 class MZMLParser(object):
@@ -135,21 +154,30 @@ class MZMLParser(object):
     def __init__(self, file_path):
         self.file_path = file_path
 
+    
+    @classmethod
+    def parse_cv_params(cls, element):
+        attr_dict = {}
+        cv_params = element.findall(cls.cv_param_tag)
+        for cv_param in cv_params:
+            for key, value in cv_param.items():
+                if key == 'name':
+                    attribute = value
+                elif key == 'value':
+                    attr_dict[attribute] = value
+        return attr_dict
+
     @property
     def iterate(self):
         with open(self.file_path, 'rb') as mzml:
             for event, element in etree.iterparse(mzml):
                 if element.tag == self.spectrum_tag:
-                    attr_dict = {}
+                    record = Scan()
                     attr_dict = {key: value for key, value in element.items()}
-                    cv_params = element.findall(self.cv_param_tag)
-                    for cv_param in cv_params:
-                        for key, value in cv_param.items():
-                            if key == 'name':
-                                attribute = value
-                            if key == 'value':
-                                attr_dict[attribute] = value
-                    record = MZMLAttributes(attr_dict)
+                    spectrum_cv_params = self.parse_cv_params(element)
+                    attr_dict.update(spectrum_cv_params)
+                    record.id = attr_dict['id']
+                    record.ms_level = attr_dict['ms level']
                     if record.ms_level == '2':
                         precursor_list = element.find(self.precursor_list_tag)
                         precursors = precursor_list.findall(self.precursor_tag)
@@ -157,24 +185,9 @@ class MZMLParser(object):
                             pre_key = precursor.get('spectrumRef')
                             selected_ion_list = precursor.find(self.selected_ion_list_tag)
                             selected_ion = selected_ion_list.find(self.selected_ion_tag)
-                            ion_params = selected_ion.findall(self.cv_param_tag)
-                            ion_attr_dict = {}
-                            for ion_param in ion_params:
-                                for key, value in ion_param.items():
-                                    if key == 'name':
-                                        attribute = value
-                                    if key == 'value':
-                                        ion_attr_dict[attribute] = value
-                            record.precursors[pre_key] = ion_attr_dict['selected ion m/z']
+                            ion_attr_dict = self.parse_cv_params(selected_ion)
+                            record.set_precursor_values(ion_attr_dict)
                     scan_list_element = element.find(self.scan_list_tag)
                     scan_element = scan_list_element.find(self.scan_tag)
-                    
-                    scan_attr_dict = {}
-                    for scan_attr in scan_element.findall(self.cv_param_tag):
-                        for key, value in scan_attr.items():
-                            if key == 'name':
-                                attribute = value
-                            if key == 'value':
-                                scan_attr_dict[attribute] = value
-                    record.scan_time = scan_attr_dict['scan start time']
+                    scan_dict = self.parse_cv_params(scan_element)
                     yield record
