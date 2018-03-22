@@ -5,10 +5,11 @@ version = '0.0.01'
 
 namespace_packages = ['lib']
 
-packages = ['lib.parser']
+packages = ['lib.parser',
+            'lib.commands']
 
 
-scripts = []
+scripts = ['bin/match-features-to-peptides']
 
 
 install_requires = ['lxml',
