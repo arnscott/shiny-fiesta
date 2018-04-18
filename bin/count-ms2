@@ -7,8 +7,8 @@ import lib.parser
 def count_ms2(file_path):
     count = 0
     mzml = lib.parser.MZMLParser(file_path)
-    for level in mzml.iterate:
-        if level == '2':
+    for scan in mzml.iterate:
+        if scan.ms_level == '2':
             count += 1
     return count
 

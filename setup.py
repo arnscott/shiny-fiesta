@@ -17,7 +17,7 @@ install_requires = ['lxml',
                     'bs4']
 
 
-setup(name='ghost',
+setup(name='pepmatcher',
       version=version,
       namespace_packages=namespace_packages,
       packages=packages,
