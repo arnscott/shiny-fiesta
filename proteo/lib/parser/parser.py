@@ -9,11 +9,9 @@ class Scan(object):
         self.peptide = {}
         self.features = []
 
-
     def set_precursor_values(self, attr_dict):
         self.mz = float(attr_dict['selected ion m/z'])
         self.charge_state = attr_dict['charge state']
-
 
     def add_peptide(self, peptide):
         self.peptide = peptide
@@ -39,7 +37,6 @@ class MZMLParser(object):
     def __init__(self, file_path):
         self.file_path = file_path
 
-    
     @classmethod
     def parse_cv_params(cls, element):
         attr_dict = {}

@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+import argparse
+import csv
+
+
+def iter_features_tsv(file_path):
+    with open(file_path) as tsvfile:
+        reader = csv.DictReader(tsvfile, delimiter='\t')
+        for row in reader:
+            yield row
+
+
+def main(args):
+    with open(args.outfile, 'w') as outfile:
+        writing_header = True
+        identity_count = 0
+        total_count = 0
+        for feature in iter_features_tsv(args.input):
+            total_count += 1
+            if writing_header:
+                headers = feature.keys()
+                writer = csv.DictWriter(outfile, delimiter='\t', fieldnames=headers)
+                writer.writeheader()
+                writing_header = False
+            else:
+                if float(feature['QValue']) < 0.01:
+                    identity_count += 1
+                    writer.writerow(feature)
+        print(identity_count)
+        print((identity_count/total_count) * 100)
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i',
+                        '--input',
+                        help='Feature file in tsv format to filter')
+    parser.add_argument('-o',
+                        '--outfile')
+    args = parser.parse_args()
+    return args
+
+
+if __name__ == '__main__':
+    args = get_arguments()
+    main(args)

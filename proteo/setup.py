@@ -5,11 +5,12 @@ version = '0.0.01'
 
 namespace_packages = ['lib']
 
-packages = ['lib.parser',
-            'lib.commands']
+packages = ['lib.parser']
 
 
-scripts = ['bin/match-features-to-peptides']
+scripts = ['bin/match-features-to-peptides',
+           'bin/count-ms2',
+           'bin/filter-fdr']
 
 
 install_requires = ['lxml',
